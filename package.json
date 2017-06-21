@@ -1,0 +1,34 @@
+{
+  "name": "boilerplate-react",
+  "version": "1.0.0",
+  "description": "My project boilerplate for React.js",
+  "scripts": {
+    "start": "webpack-dev-server --content-base public",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/likr/boilerplate-react.git"
+  },
+  "keywords": [],
+  "author": "Yosuke ONOUE <onoue@likr-lab.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/likr/boilerplate-react/issues"
+  },
+  "homepage": "https://github.com/likr/boilerplate-react#readme",
+  "dependencies": {
+    "d3": "^4.4.0",
+    "emogdf": "file:///Users/likr/work/emogdf",
+    "react": "^15.3.2",
+    "react-dom": "^15.3.2"
+  },
+  "devDependencies": {
+    "babel-core": "^6.17.0",
+    "babel-loader": "^6.2.5",
+    "babel-preset-latest": "^6.16.0",
+    "babel-preset-react": "^6.16.0",
+    "webpack": "^1.13.2",
+    "webpack-dev-server": "^1.16.2"
+  }
+}
