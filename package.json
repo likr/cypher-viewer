@@ -18,17 +18,20 @@
   },
   "homepage": "https://github.com/likr/boilerplate-react#readme",
   "dependencies": {
-    "d3": "^4.4.0",
+    "d3": "^4.10.0",
+    "eg-renderer": "git+https://github.com/likr/eg-renderer-canvas.git",
+    "eg-renderer-ogdf": "git+https://github.com/likr/eg-renderer-ogdf.git",
     "emogdf": "file:///Users/likr/work/emogdf",
     "react": "^15.3.2",
     "react-dom": "^15.3.2"
   },
   "devDependencies": {
-    "babel-core": "^6.17.0",
-    "babel-loader": "^6.2.5",
+    "babel-core": "^6.25.0",
+    "babel-loader": "^6.4.1",
+    "babel-preset-env": "^1.6.0",
     "babel-preset-latest": "^6.16.0",
-    "babel-preset-react": "^6.16.0",
-    "webpack": "^1.13.2",
-    "webpack-dev-server": "^1.16.2"
+    "babel-preset-react": "^6.24.1",
+    "webpack": "^2.7.0",
+    "webpack-dev-server": "^2.6.1"
   }
 }
