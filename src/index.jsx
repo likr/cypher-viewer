@@ -38,26 +38,26 @@ class App extends React.Component {
       layoutMethod
     } = this.state
     const query = `MATCH (v1)-[r:Correlation]->(v2)
-WHERE abs(r.r) > 0.6 AND v1.time_order <= v2.time_order
-RETURN v1, r, v2`
+WHERE abs(r.value) > 0.6 AND v1.timeOrder <= v2.timeOrder
+RETURN collect(distinct(v1)), collect(r), collect(distinct(v2))`
     return <div className='ui container'>
       <h1>Cypher Viewer</h1>
       <div className='ui vertical segment'>
         <form className='ui form' onSubmit={(event) => event.preventDefault()}>
           <h4 className='ui dividing header'>Query</h4>
           <div className='field'>
-            <label>URL</label>
-            <input ref='url' defaultValue='http://localhost:7474/db/data/cypher' />
+            <label>Endpoint URL</label>
+            <input ref='url' defaultValue='http://great-auk.local:7474/db/data/transaction/commit' />
           </div>
           <div className='field'>
             <div className='two fields'>
               <div className='field'>
                 <label>User ID</label>
-                <input ref='userId' defaultValue='neo4j' />
+                <input ref='userId' defaultValue='' />
               </div>
               <div className='field'>
                 <label>Password</label>
-                <input ref='password' type='password' defaultValue='neo4j' />
+                <input ref='password' type='password' defaultValue='' />
               </div>
             </div>
           </div>
@@ -79,11 +79,16 @@ RETURN v1, r, v2`
             width={width}
             height={height}
             transition-duration='1000'
+            graph-nodes-property='nodes'
+            graph-links-property='relationships'
             node-id-property='id'
+            link-source-property='startNode'
+            link-target-property='endNode'
             default-node-width='30'
             default-node-height='30'
             default-node-stroke-width='0'
-            default-link-stroke-color='#ccc'
+            default-link-source-marker-size='8'
+            default-link-target-marker-size='8'
             layout-method={layoutMethod}
             no-auto-centering
           />
@@ -126,61 +131,56 @@ RETURN v1, r, v2`
     const url = this.refs.url.value
     const userId = this.refs.userId.value
     const password = this.refs.password.value
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (userId && password) {
+      headers['Authorization'] = `Basic ${window.btoa(`${userId}:${password}`)}`
+    }
     window
       .fetch(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Basic ${window.btoa(`${userId}:${password}`)}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({query})
+        headers,
+        body: JSON.stringify({
+          statements: [
+            {
+              statement: query,
+              resultDataContents: ['graph']
+            }
+          ]
+        })
       })
       .then((response) => response.json())
-      .then(({data}) => {
+      .then(({results}) => {
+        const graph = results[0].data[0].graph
         const linkWidthScale = d3.scaleLinear()
           .domain([0, 1])
           .range([0, 5])
         const linkColorScale = d3.scaleLinear()
           .domain([-1, 0, 1])
           .range(['#00f', '#fff', '#f00'])
-        const nodes = new Map()
-        const links = []
-        for (const row of data) {
-          const v1 = row[0]
-          const v2 = row[2]
-          const link = row[1].data
-          nodes.set(v1.metadata.id, v1.data)
-          nodes.set(v2.metadata.id, v2.data)
-          links.push({
-            source: v1.data.id,
-            target: v2.data.id,
-            strokeWidth: linkWidthScale(Math.abs(link.r)),
-            strokeColor: linkColorScale(link.r),
-            sourceMarkerShape: v1.data.time_order === v2.data.time_order ? 'triangle' : 'circle',
-            sourceMarkerSize: 8,
-            targetMarkerShape: 'triangle',
-            targetMarkerSize: 8,
-            d: link
-          })
+        const nodeIndices = new Map(graph.nodes.map(({id}, i) => [id, i]))
+        for (const node of graph.nodes) {
+          node.label = node.properties[this.refs.nodeLabel.value]
+          node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
         }
-        this.refs.renderer.load({
-          nodes: Array.from(nodes.values()).map((node) => {
-            return {
-              id: node.id,
-              label: node[this.refs.nodeLabel.value],
-              fillColor: nodeColor(node[this.refs.nodeColor.value]),
-              d: node
-            }
-          }),
-          links
-        })
+        for (const link of graph.relationships) {
+          const source = graph.nodes[nodeIndices.get(link.startNode)]
+          const target = graph.nodes[nodeIndices.get(link.endNode)]
+          link.type = 'line'
+          link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
+          link.strokeColor = linkColorScale(link.properties.value)
+          link.sourceMarkerShape = source.timeOrder === target.timeOrder ? 'triangle' : 'circle'
+          link.targetMarkerShape = 'triangle'
+        }
+        this.refs.renderer.load(graph)
       })
   }
 
   handleClickUpdateButton () {
     for (const node of this.refs.renderer.data.nodes) {
-      node.label = node.d[this.refs.nodeLabel.value]
-      node.fillColor = nodeColor(node.d[this.refs.nodeColor.value])
+      node.label = node.properties[this.refs.nodeLabel.value]
+      node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
     }
     this.refs.renderer.invalidate()
   }
