@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "My project boilerplate for React.js",
   "scripts": {
+    "deploy": "npm run build && gh-pages -d public",
     "start": "webpack-dev-server --content-base public",
     "build": "webpack"
   },
@@ -31,6 +32,7 @@
     "babel-preset-env": "^1.6.0",
     "babel-preset-latest": "^6.16.0",
     "babel-preset-react": "^6.24.1",
+    "gh-pages": "^1.0.0",
     "webpack": "^2.7.0",
     "webpack-dev-server": "^2.6.1"
   }

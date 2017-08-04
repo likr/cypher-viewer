@@ -24,10 +24,17 @@ class App extends React.Component {
     })
 
     window.addEventListener('resize', () => {
-      this.setState({
-        width: wrapper.clientWidth,
-        height: wrapper.clientHeight
-      })
+      if (document.webkitIsFullScreen) {
+        this.setState({
+          width: window.innerWidth,
+          height: window.innerHeight
+        })
+      } else {
+        this.setState({
+          width: wrapper.clientWidth,
+          height: wrapper.clientHeight
+        })
+      }
     })
   }
 
@@ -92,6 +99,14 @@ RETURN collect(distinct(v1)), collect(r), collect(distinct(v2))`
             layout-method={layoutMethod}
             no-auto-centering
           />
+        </div>
+        <div className='ui menu'>
+          <div className='item'>
+            <button className='ui button' onClick={this.handleClickCenterButton.bind(this)}>Center</button>
+          </div>
+          <div className='item'>
+            <button className='ui button' onClick={this.handleClickFullscreenButton.bind(this)}>Fullscreen</button>
+          </div>
         </div>
       </div>
       <div className='ui vertical segment'>
@@ -170,11 +185,21 @@ RETURN collect(distinct(v1)), collect(r), collect(distinct(v2))`
           link.type = 'line'
           link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
           link.strokeColor = linkColorScale(link.properties.value)
-          link.sourceMarkerShape = source.timeOrder === target.timeOrder ? 'triangle' : 'circle'
+          link.sourceMarkerShape = source.properties.timeOrder === target.properties.timeOrder ? 'triangle' : 'circle'
           link.targetMarkerShape = 'triangle'
         }
         this.refs.renderer.load(graph)
       })
+  }
+
+  handleClickCenterButton () {
+    this.refs.renderer.center()
+  }
+
+  handleClickFullscreenButton () {
+    if (this.refs.renderer.webkitRequestFullscreen) {
+      this.refs.renderer.webkitRequestFullscreen()
+    }
   }
 
   handleClickUpdateButton () {
