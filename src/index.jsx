@@ -50,21 +50,21 @@ RETURN collect(distinct(v1)), collect(r), collect(distinct(v2))`
     return <div className='ui container'>
       <h1>Cypher Viewer</h1>
       <div className='ui vertical segment'>
-        <form className='ui form' onSubmit={(event) => event.preventDefault()}>
+        <form className='ui form' onSubmit={(event) => event.preventDefault()} autoComplete='on' >
           <h4 className='ui dividing header'>Query</h4>
           <div className='field'>
             <label>Endpoint URL</label>
-            <input ref='url' defaultValue='http://great-auk.local:7474/db/data/transaction/commit' />
+            <input ref='url' name='neo4j-url' autoComplete='neo4j-url' />
           </div>
           <div className='field'>
             <div className='two fields'>
               <div className='field'>
                 <label>User ID</label>
-                <input ref='userId' defaultValue='' />
+                <input ref='userId' name='neo4j-user' autoComplete='neo4j-user' />
               </div>
               <div className='field'>
                 <label>Password</label>
-                <input ref='password' type='password' defaultValue='' />
+                <input ref='password' type='password' name='neo4j-password' autoComplete='neo4j-password' />
               </div>
             </div>
           </div>
