@@ -5,6 +5,57 @@ import {render} from 'react-dom'
 import * as d3 from 'd3'
 
 const nodeColor = d3.scaleOrdinal(d3.schemeCategory10)
+const query = `MATCH p = (v1)-[r:Correlation]->(v2)
+WHERE abs(r.value) > 0.6
+  AND v1.timeOrder < v2.timeOrder
+RETURN collect(nodes(p)), collect(relationships(p))`
+
+const fetchGraph = (query, userId, password, nodeLabelProperty, nodeColorProperty) => {
+  const headers = {
+    'Content-Type': 'application/json'
+  }
+  if (userId && password) {
+    headers['Authorization'] = `Basic ${window.btoa(`${userId}:${password}`)}`
+  }
+  return window
+    .fetch('https://neo4j.likr-lab.com/db/data/transaction/commit', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        statements: [
+          {
+            statement: query,
+            resultDataContents: ['graph']
+          }
+        ]
+      })
+    })
+    .then((response) => response.json())
+    .then(({results}) => {
+      const graph = results[0].data[0].graph
+      const linkWidthScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([0, 5])
+      const linkColorScale = d3.scaleLinear()
+        .domain([-1, 0, 1])
+        .range(['#00f', '#fff', '#f00'])
+      const nodeIndices = new Map(graph.nodes.map(({id}, i) => [id, i]))
+      for (const node of graph.nodes) {
+        node.label = node.properties[nodeLabelProperty]
+        node.fillColor = nodeColor(node.properties[nodeColorProperty])
+      }
+      for (const link of graph.relationships) {
+        const source = graph.nodes[nodeIndices.get(link.startNode)]
+        const target = graph.nodes[nodeIndices.get(link.endNode)]
+        link.type = 'line'
+        link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
+        link.strokeColor = linkColorScale(link.properties.value)
+        link.sourceMarkerShape = source.properties.timeOrder === target.properties.timeOrder ? 'triangle' : 'circle'
+        link.targetMarkerShape = 'triangle'
+      }
+      return graph
+    })
+}
 
 class App extends React.Component {
   constructor () {
@@ -44,18 +95,11 @@ class App extends React.Component {
       height,
       layoutMethod
     } = this.state
-    const query = `MATCH (v1)-[r:Correlation]->(v2)
-WHERE abs(r.value) > 0.6 AND v1.timeOrder <= v2.timeOrder
-RETURN collect(distinct(v1)), collect(r), collect(distinct(v2))`
     return <div className='ui container'>
       <h1>Cypher Viewer</h1>
       <div className='ui vertical segment'>
         <form className='ui form' onSubmit={(event) => event.preventDefault()} autoComplete='on' >
           <h4 className='ui dividing header'>Query</h4>
-          <div className='field'>
-            <label>Endpoint URL</label>
-            <input ref='url' name='neo4j-url' autoComplete='neo4j-url' />
-          </div>
           <div className='field'>
             <div className='two fields'>
               <div className='field'>
@@ -143,53 +187,13 @@ RETURN collect(distinct(v1)), collect(r), collect(distinct(v2))`
 
   handleClickLoadButton () {
     const query = this.refs.query.value
-    const url = this.refs.url.value
     const userId = this.refs.userId.value
     const password = this.refs.password.value
-    const headers = {
-      'Content-Type': 'application/json'
-    }
-    if (userId && password) {
-      headers['Authorization'] = `Basic ${window.btoa(`${userId}:${password}`)}`
-    }
-    window
-      .fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          statements: [
-            {
-              statement: query,
-              resultDataContents: ['graph']
-            }
-          ]
-        })
-      })
-      .then((response) => response.json())
-      .then(({results}) => {
-        const graph = results[0].data[0].graph
-        const linkWidthScale = d3.scaleLinear()
-          .domain([0, 1])
-          .range([0, 5])
-        const linkColorScale = d3.scaleLinear()
-          .domain([-1, 0, 1])
-          .range(['#00f', '#fff', '#f00'])
-        const nodeIndices = new Map(graph.nodes.map(({id}, i) => [id, i]))
-        for (const node of graph.nodes) {
-          node.label = node.properties[this.refs.nodeLabel.value]
-          node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
-        }
-        for (const link of graph.relationships) {
-          const source = graph.nodes[nodeIndices.get(link.startNode)]
-          const target = graph.nodes[nodeIndices.get(link.endNode)]
-          link.type = 'line'
-          link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
-          link.strokeColor = linkColorScale(link.properties.value)
-          link.sourceMarkerShape = source.properties.timeOrder === target.properties.timeOrder ? 'triangle' : 'circle'
-          link.targetMarkerShape = 'triangle'
-        }
-        this.refs.renderer.load(graph)
-      })
+    const nodeLabelProperty = this.refs.nodeLabel.value
+    const nodeColorProperty = this.refs.nodeColor.value
+    fetchGraph(query, userId, password, nodeLabelProperty, nodeColorProperty).then((graph) => {
+      this.refs.renderer.load(graph)
+    })
   }
 
   handleClickCenterButton () {
