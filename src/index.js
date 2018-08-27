@@ -96,11 +96,11 @@ class App extends React.Component {
             <div className='two fields'>
               <div className='field'>
                 <label>User ID</label>
-                <input ref='userId' name='neo4j-user' />
+                <input ref='userId' defaultValue='neo4j' />
               </div>
               <div className='field'>
                 <label>Password</label>
-                <input ref='password' type='password' name='neo4j-password' />
+                <input ref='password' type='password' />
               </div>
             </div>
           </div>
@@ -217,7 +217,10 @@ class App extends React.Component {
       i0: 90,
       sStep: 0.5,
       iStep: 0.6,
-      groupProperty: this.refs.nodeGroup.value
+      groupProperty: this.refs.nodeGroup.value,
+      useEdgeConcentration: true,
+      mu: 0.5,
+      minCount: 6
     }
     layout(this.data, options).then((data) => {
       this.refs.renderer.load(data)
