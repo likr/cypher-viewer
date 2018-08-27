@@ -21,6 +21,7 @@
   "dependencies": {
     "d3": "^5.7.0",
     "eg-renderer": "^1.1.0-0",
+    "egraph": "file:../egraph-rs/egraph-js",
     "react": "^15.3.2",
     "react-dom": "^15.3.2"
   },
@@ -30,6 +31,7 @@
     "babel-preset-env": "^1.7.0",
     "babel-preset-latest": "^6.16.0",
     "babel-preset-react": "^6.24.1",
+    "copy-webpack-plugin": "^4.5.2",
     "gh-pages": "^1.2.0",
     "webpack": "^4.17.1",
     "webpack-cli": "^3.1.0",

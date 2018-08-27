@@ -1,4 +1,5 @@
 const path = require('path')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 const options = {
   module: {
@@ -27,6 +28,12 @@ const options = {
     filename: '[name].js'
   },
   plugins: [
+    new CopyWebpackPlugin([
+      {
+        from: 'node_modules/egraph/egraph.wasm',
+        to: '.'
+      }
+    ])
   ],
   devServer: {
     contentBase: path.join(__dirname, 'public'),

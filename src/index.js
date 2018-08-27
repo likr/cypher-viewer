@@ -1,8 +1,8 @@
 import 'eg-renderer'
-import 'eg-renderer-ogdf'
 import React from 'react'
 import {render} from 'react-dom'
 import * as d3 from 'd3'
+import {layout} from './layout'
 
 const nodeColor = d3.scaleOrdinal(d3.schemeCategory10)
 const query = `MATCH p = (v1)-[r:Correlation]->(v2)
@@ -10,7 +10,7 @@ WHERE abs(r.value) > 0.6
   AND v1.timeOrder < v2.timeOrder
 RETURN collect(nodes(p)), collect(relationships(p))`
 
-const fetchGraph = (query, userId, password, nodeLabelProperty, nodeColorProperty) => {
+const fetchGraph = (query, userId, password, nodeColorProperty) => {
   const headers = {
     'Content-Type': 'application/json'
   }
@@ -35,23 +35,17 @@ const fetchGraph = (query, userId, password, nodeLabelProperty, nodeColorPropert
       const graph = results[0].data[0].graph
       const linkWidthScale = d3.scaleLinear()
         .domain([0, 1])
-        .range([0, 5])
+        .range([0, 3])
       const linkColorScale = d3.scaleLinear()
         .domain([-1, 0, 1])
         .range(['#00f', '#fff', '#f00'])
-      const nodeIndices = new Map(graph.nodes.map(({id}, i) => [id, i]))
       for (const node of graph.nodes) {
-        node.label = node.properties[nodeLabelProperty]
         node.fillColor = nodeColor(node.properties[nodeColorProperty])
       }
       for (const link of graph.relationships) {
-        const source = graph.nodes[nodeIndices.get(link.startNode)]
-        const target = graph.nodes[nodeIndices.get(link.endNode)]
         link.type = 'line'
         link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
         link.strokeColor = linkColorScale(link.properties.value)
-        link.sourceMarkerShape = source.properties.timeOrder === target.properties.timeOrder ? 'triangle' : 'circle'
-        link.targetMarkerShape = 'triangle'
       }
       return graph
     })
@@ -62,8 +56,7 @@ class App extends React.Component {
     super()
     this.state = {
       width: 300,
-      height: 150,
-      layoutMethod: 'fmmm'
+      height: 150
     }
   }
 
@@ -92,23 +85,22 @@ class App extends React.Component {
   render () {
     const {
       width,
-      height,
-      layoutMethod
+      height
     } = this.state
     return <div className='ui container'>
       <h1>Cypher Viewer</h1>
       <div className='ui vertical segment'>
-        <form className='ui form' onSubmit={(event) => event.preventDefault()} autoComplete='on' >
+        <form className='ui form' onSubmit={this.handleSubmitQueryForm.bind(this)}>
           <h4 className='ui dividing header'>Query</h4>
           <div className='field'>
             <div className='two fields'>
               <div className='field'>
                 <label>User ID</label>
-                <input ref='userId' name='neo4j-user' autoComplete='neo4j-user' />
+                <input ref='userId' name='neo4j-user' />
               </div>
               <div className='field'>
                 <label>Password</label>
-                <input ref='password' type='password' name='neo4j-password' autoComplete='neo4j-password' />
+                <input ref='password' type='password' name='neo4j-password' />
               </div>
             </div>
           </div>
@@ -116,12 +108,12 @@ class App extends React.Component {
             <label>Query</label>
             <textarea ref='query' defaultValue={query} />
           </div>
-          <button className='ui button' onClick={this.handleClickLoadButton.bind(this)}>load</button>
+          <button className='ui button' type='submit'>load</button>
         </form>
       </div>
       <div className='ui vertical segment' >
         <div ref='wrapper' style={{height: '600px'}}>
-          <eg-renderer-ogdf
+          <eg-renderer
             ref='renderer'
             style={{
               border: 'solid 1px #ccc',
@@ -133,14 +125,13 @@ class App extends React.Component {
             graph-nodes-property='nodes'
             graph-links-property='relationships'
             node-id-property='id'
+            node-label-property='properties.name'
             link-source-property='startNode'
             link-target-property='endNode'
-            default-node-width='30'
-            default-node-height='30'
+            default-node-width='10'
+            default-node-height='10'
             default-node-stroke-width='0'
-            default-link-source-marker-size='8'
-            default-link-target-marker-size='8'
-            layout-method={layoutMethod}
+            default-link-stroke-width='1'
             no-auto-centering
           />
         </div>
@@ -154,46 +145,41 @@ class App extends React.Component {
         </div>
       </div>
       <div className='ui vertical segment'>
-        <form className='ui form' onSubmit={(event) => event.preventDefault()}>
+        <form className='ui form' onSubmit={this.handleSubmitOptionsForm.bind(this)}>
           <h4 className='ui dividing header'>Renderer Options</h4>
           <div className='field'>
-            <label>Layout Method</label>
-            <select value={layoutMethod} onChange={this.handleChangeLayoutMethod.bind(this)}>
-              <option value='circular'>Circular</option>
-              <option value='fmmm'>FMMM</option>
-              <option value='planarization'>Planarization</option>
-              <option value='sugiyama'>Sugiyama</option>
+            <label>Group Layout</label>
+            <select ref='group' defaultValue='circle-pack'>
+              <option value='treemap'>Treemap</option>
+              <option value='circle-pack'>Circle Packing</option>
             </select>
           </div>
           <div className='field'>
-            <label>Node Label</label>
-            <input ref='nodeLabel' defaultValue='name' />
+            <label>Node Color</label>
+            <select ref='nodeColor' defaultValue='type'>
+              <option value='type'>Type</option>
+              <option value='timeGroup'>Time Group</option>
+              <option value='timeGroupDetail'>Time Group Detail</option>
+              <option value='unit'>Unit</option>
+            </select>
           </div>
           <div className='field'>
-            <label>Node Color</label>
-            <input ref='nodeColor' defaultValue='type' />
+            <label>Node Group</label>
+            <select ref='nodeGroup' defaultValue='timeGroup'>
+              <option value='type'>Type</option>
+              <option value='timeGroup'>Time Group</option>
+              <option value='timeGroupDetail'>Time Group Detail</option>
+              <option value='unit'>Unit</option>
+            </select>
           </div>
-          <button className='ui button' onClick={this.handleClickUpdateButton.bind(this)}>update</button>
+          <div className='field'>
+            <label>Edge Bundling Cycles</label>
+            <input ref='cycles' type='number' min='0' defaultValue='6' />
+          </div>
+          <button className='ui button' type='submit'>update</button>
         </form>
       </div>
     </div>
-  }
-
-  handleChangeLayoutMethod (event) {
-    this.setState({
-      layoutMethod: event.target.value
-    })
-  }
-
-  handleClickLoadButton () {
-    const query = this.refs.query.value
-    const userId = this.refs.userId.value
-    const password = this.refs.password.value
-    const nodeLabelProperty = this.refs.nodeLabel.value
-    const nodeColorProperty = this.refs.nodeColor.value
-    fetchGraph(query, userId, password, nodeLabelProperty, nodeColorProperty).then((graph) => {
-      this.refs.renderer.load(graph)
-    })
   }
 
   handleClickCenterButton () {
@@ -206,9 +192,40 @@ class App extends React.Component {
     }
   }
 
-  handleClickUpdateButton () {
+  handleSubmitQueryForm (event) {
+    event.preventDefault()
+    const query = this.refs.query.value
+    const userId = this.refs.userId.value
+    const password = this.refs.password.value
+    const nodeColorProperty = this.refs.nodeColor.value
+    fetchGraph(query, userId, password, nodeColorProperty).then((data) => {
+      this.data = data
+      this.layout()
+    })
+  }
+
+  handleSubmitOptionsForm (event) {
+    event.preventDefault()
+    this.layout()
+  }
+
+  layout () {
+    const options = {
+      type: this.refs.group.value,
+      cycles: +this.refs.cycles.value,
+      s0: 0.1,
+      i0: 90,
+      sStep: 0.5,
+      iStep: 0.6,
+      groupProperty: this.refs.nodeGroup.value
+    }
+    layout(this.data, options).then((data) => {
+      this.refs.renderer.load(data)
+    })
+  }
+
+  update () {
     for (const node of this.refs.renderer.data.nodes) {
-      node.label = node.properties[this.refs.nodeLabel.value]
       node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
     }
     this.refs.renderer.invalidate()
