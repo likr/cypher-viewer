@@ -20,7 +20,7 @@
   "homepage": "https://github.com/likr/cypher-viewer#readme",
   "dependencies": {
     "d3": "^5.7.0",
-    "eg-renderer": "^1.1.0-0",
+    "eg-renderer": "^1.1.0-1",
     "egraph": "file:../egraph-rs/egraph-js",
     "react": "^15.3.2",
     "react-dom": "^15.3.2"

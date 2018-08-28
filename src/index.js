@@ -124,6 +124,7 @@ class App extends React.Component {
             transition-duration='1000'
             graph-nodes-property='nodes'
             graph-links-property='relationships'
+            group-id-property='label'
             node-id-property='id'
             node-label-property='properties.name'
             link-source-property='startNode'
