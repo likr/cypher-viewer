@@ -228,6 +228,10 @@ const calcLayout = (Module, data, options) => {
 
   const layoutData = options.useEdgeConcentration ? applyEdgeConcentration(data, groups, options) : data
   const graph = makeGraph(Module, layoutData, groups, options)
+  layoutData.nodes.forEach((node, i) => {
+    graph.setX(i, node.x || 0)
+    graph.setY(i, node.y || 0)
+  })
   const groupMap = new Map(groups.map(({name}, i) => [name, i]))
   const nodeGroupsPointer = allocator.alloc(4 * graph.nodeCount())
   layoutData.nodes.forEach((node, i) => {
