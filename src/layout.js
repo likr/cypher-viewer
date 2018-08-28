@@ -6,6 +6,7 @@ import {Graph} from 'egraph/graph'
 import {EdgeBundling} from 'egraph/edge-bundling'
 import {loadModule} from './module'
 import EGraph from './egraph/graph'
+import copy from './egraph/graph/copy'
 import EdgeConcentrationTransformer from './egraph/transformer/edge-concentration'
 import quasiBicliqueMining from './egraph/transformer/edge-concentration/quasi-biclique-mining'
 
@@ -142,7 +143,7 @@ const applyEdgeConcentration = (data, groups, options) => {
           fillOpacity: 0
         }
       })
-      const transformedGraph = transformer.transform(subGraph)
+      const transformedGraph = transformer.transform(copy(subGraph))
       for (const u of transformedGraph.vertices()) {
         const node = transformedGraph.vertex(u)
         if (node.dummy) {
