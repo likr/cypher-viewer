@@ -149,14 +149,14 @@ class App extends React.Component {
           <h4 className='ui dividing header'>Renderer Options</h4>
           <div className='field'>
             <label>Group Layout</label>
-            <select ref='group' defaultValue='circle-pack'>
+            <select ref='group' className='ui selection dropdown' defaultValue='circle-pack'>
               <option value='treemap'>Treemap</option>
               <option value='circle-pack'>Circle Packing</option>
             </select>
           </div>
           <div className='field'>
             <label>Node Color</label>
-            <select ref='nodeColor' defaultValue='type'>
+            <select ref='nodeColor' className='ui selection dropdown' defaultValue='type'>
               <option value='type'>Type</option>
               <option value='timeGroup'>Time Group</option>
               <option value='timeGroupDetail'>Time Group Detail</option>
@@ -165,7 +165,7 @@ class App extends React.Component {
           </div>
           <div className='field'>
             <label>Node Group</label>
-            <select ref='nodeGroup' defaultValue='timeGroup'>
+            <select ref='nodeGroup' className='ui selection dropdown' defaultValue='timeGroup'>
               <option value='type'>Type</option>
               <option value='timeGroup'>Time Group</option>
               <option value='timeGroupDetail'>Time Group Detail</option>
@@ -174,7 +174,45 @@ class App extends React.Component {
           </div>
           <div className='field'>
             <label>Edge Bundling Cycles</label>
-            <input ref='cycles' type='number' min='0' defaultValue='6' />
+            <input ref='cycles' type='number' min='0' defaultValue='3' />
+          </div>
+          <div className='field'>
+            <label>Edge Concentration Min Count</label>
+            <input ref='minCount' type='number' min='1' defaultValue='6' />
+          </div>
+          <div className='field'>
+            <label>Group Many Body Force</label>
+            <input ref='manyBodyForce' type='number' min='0' step='0.01' defaultValue='0.5' />
+          </div>
+          <div className='field'>
+            <label>Group Link Force</label>
+            <input ref='linkForce' type='number' min='0' step='0.01' defaultValue='0.5' />
+          </div>
+          <div className='field'>
+            <label>Intra Group Strength</label>
+            <input ref='intraGroup' type='number' min='0' step='0.01' defaultValue='0.5' />
+          </div>
+          <div className='field'>
+            <label>Inter Group Strength</label>
+            <input ref='interGroup' type='number' min='0' step='0.01' defaultValue='0.3' />
+          </div>
+          <div className='field'>
+            <label>Group Center Force</label>
+            <input ref='centerForce' type='number' min='0' step='0.01' defaultValue='0.2' />
+          </div>
+          <div className='field'>
+            <label>Use Edge Concentration</label>
+            <select ref='useEdgeConcentration' className='ui selection dropdown' defaultValue='yes'>
+              <option value='yes'>Yes</option>
+              <option value='no'>No</option>
+            </select>
+          </div>
+          <div className='field'>
+            <label>Show Single Edge</label>
+            <select ref='showSingleEdge' className='ui selection dropdown' defaultValue='no'>
+              <option value='yes'>Yes</option>
+              <option value='no'>No</option>
+            </select>
           </div>
           <button className='ui button' type='submit'>update</button>
         </form>
@@ -200,7 +238,9 @@ class App extends React.Component {
     const nodeColorProperty = this.refs.nodeColor.value
     fetchGraph(query, userId, password, nodeColorProperty).then((data) => {
       this.data = data
-      this.layout()
+      this.layout().then(() => {
+        this.refs.renderer.center()
+      })
     })
   }
 
@@ -218,11 +258,31 @@ class App extends React.Component {
       sStep: 0.5,
       iStep: 0.6,
       groupProperty: this.refs.nodeGroup.value,
-      useEdgeConcentration: true,
+      manyBodyForce: +this.refs.manyBodyForce.value,
+      linkForce: +this.refs.linkForce.value,
+      centerForce: +this.refs.centerForce.value,
+      intraGroup: +this.refs.intraGroup.value,
+      interGroup: +this.refs.interGroup.value,
+      useEdgeConcentration: this.refs.useEdgeConcentration.value === 'yes',
+      showSingleEdge: this.refs.showSingleEdge.value === 'yes',
       mu: 0.5,
-      minCount: 6
+      minCount: +this.refs.minCount.value
     }
-    layout(this.data, options).then((data) => {
+    return layout(this.data, options).then((data) => {
+      const linkWidthScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([1, 3])
+      const linkColorScale = d3.scaleLinear()
+        .domain([-1, 0, 1])
+        .range(['#00f', '#888', '#f00'])
+      for (const node of data.nodes) {
+        node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
+      }
+      for (const link of data.relationships) {
+        link.type = 'line'
+        link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
+        link.strokeColor = linkColorScale(link.properties.value)
+      }
       this.refs.renderer.load(data)
     })
   }

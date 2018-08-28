@@ -7,6 +7,7 @@ import {EdgeBundling} from 'egraph/edge-bundling'
 import {loadModule} from './module'
 import EGraph from './egraph/graph'
 import EdgeConcentrationTransformer from './egraph/transformer/edge-concentration'
+import quasiBicliqueMining from './egraph/transformer/edge-concentration/quasi-biclique-mining'
 
 const countGroups = (nodes, key) => {
   const groupCount = new Map()
@@ -76,11 +77,12 @@ const applyEdgeConcentration = (data, groups, options) => {
   for (const node of data.nodes) {
     graph.addVertex(node.id, node)
   }
-  for (const {startNode, endNode} of data.relationships) {
+  for (const edge of data.relationships) {
+    const {startNode, endNode} = edge
     const sourceGroup = graph.vertex(startNode).properties[options.groupProperty]
     const targetGroup = graph.vertex(endNode).properties[options.groupProperty]
     if (sourceGroup === targetGroup) {
-      graph.addEdge(startNode, endNode)
+      graph.addEdge(startNode, endNode, edge)
     }
   }
 
@@ -89,6 +91,7 @@ const applyEdgeConcentration = (data, groups, options) => {
   })
 
   const transformer = new EdgeConcentrationTransformer()
+    .method((graph, h1, h2) => quasiBicliqueMining(graph, h1, h2, options.mu, options.minCount))
     .idGenerator((graph, source, target) => {
       source = Array.from(source)
       source.sort()
@@ -109,22 +112,40 @@ const applyEdgeConcentration = (data, groups, options) => {
       for (const node of g2) {
         subGraph.addVertex(node.id, node)
       }
-      for (const {startNode, endNode} of data.relationships) {
+      for (const edge of data.relationships) {
+        const {startNode, endNode} = edge
         const sourceGroup = graph.vertex(startNode).properties[options.groupProperty]
         const targetGroup = graph.vertex(endNode).properties[options.groupProperty]
         if (sourceGroup === groups[i].name && targetGroup === groups[j].name) {
-          subGraph.addEdge(startNode, endNode)
+          subGraph.addEdge(startNode, endNode, edge)
         }
         if (sourceGroup === groups[j].name && targetGroup === groups[i].name) {
-          subGraph.addEdge(endNode, startNode)
+          subGraph.addEdge(endNode, startNode, edge)
         }
       }
 
+      transformer.dummy((source, target) => {
+        const edges = []
+        for (const u of source) {
+          for (const v of target) {
+            const edge = subGraph.edge(u, v)
+            if (edge) {
+              edges.push(edge)
+            }
+          }
+        }
+        return {
+          dummy: true,
+          average: edges.reduce((a, e) => a + e.properties.value, 0) / edges.length,
+          strokeColor: 'black',
+          strokeWidth: 1,
+          fillOpacity: 0
+        }
+      })
       const transformedGraph = transformer.transform(subGraph)
       for (const u of transformedGraph.vertices()) {
         const node = transformedGraph.vertex(u)
         if (node.dummy) {
-          console.log(u)
           graph.addVertex(`${u}-l`, Object.assign({}, node, {
             id: `${u}-l`,
             properties: {
@@ -137,20 +158,34 @@ const applyEdgeConcentration = (data, groups, options) => {
               [options.groupProperty]: groups[j].name
             }
           }))
-          graph.addEdge(`${u}-l`, `${u}-r`)
+          graph.addEdge(`${u}-l`, `${u}-r`, {
+            properties: {
+              value: node.average
+            }
+          })
         }
       }
       for (const [u, v] of transformedGraph.edges()) {
         const uNode = transformedGraph.vertex(u)
         const vNode = transformedGraph.vertex(v)
         if (!uNode.dummy && !vNode.dummy) {
-          // graph.addEdge(u, v)
+          if (options.showSingleEdge) {
+            graph.addEdge(u, v)
+          }
         }
         if (uNode.dummy && !vNode.dummy) {
-          graph.addEdge(`${u}-r`, v)
+          graph.addEdge(`${u}-r`, v, {
+            properties: {
+              value: uNode.average
+            }
+          })
         }
         if (!uNode.dummy && vNode.dummy) {
-          graph.addEdge(u, `${v}-l`)
+          graph.addEdge(u, `${v}-l`, {
+            properties: {
+              value: vNode.average
+            }
+          })
         }
       }
     }
@@ -158,7 +193,7 @@ const applyEdgeConcentration = (data, groups, options) => {
 
   return {
     nodes: graph.vertices().map((u) => graph.vertex(u)),
-    relationships: graph.edges().map(([u, v]) => ({startNode: u, endNode: v}))
+    relationships: graph.edges().map(([u, v]) => Object.assign({}, graph.edge(u, v), {startNode: u, endNode: v}))
   }
 }
 
@@ -200,11 +235,11 @@ const calcLayout = (Module, data, options) => {
 
   const simulation = new Simulation(Module)
   const f1 = simulation.addGroupManyBodyForce(groupsPointer, groups.length, nodeGroupsPointer, graph.nodeCount())
-  const f2 = simulation.addGroupLinkForce(graph, nodeGroupsPointer)
+  const f2 = simulation.addGroupLinkForce(graph, nodeGroupsPointer, options.intraGroup, options.interGroup)
   const f3 = simulation.addGroupCenterForce(groupsPointer, groups.length, nodeGroupsPointer, graph.nodeCount())
-  simulation.setStrength(f1, 0.2)
-  simulation.setStrength(f2, 1.0)
-  simulation.setStrength(f3, 0.8)
+  simulation.setStrength(f1, options.manyBodyForce)
+  simulation.setStrength(f2, options.linkForce)
+  simulation.setStrength(f3, options.centerForce)
   simulation.start(graph)
 
   const edgeBundling = new EdgeBundling(Module)
@@ -213,7 +248,7 @@ const calcLayout = (Module, data, options) => {
   edgeBundling.i0 = options.i0
   edgeBundling.sStep = options.sStep
   edgeBundling.iStep = options.iStep
-  // const lines = edgeBundling.call(graph)
+  const lines = edgeBundling.call(graph)
 
   tiles.forEach((tile, i) => {
     tile.type = groupType.get(options.type)
@@ -229,7 +264,7 @@ const calcLayout = (Module, data, options) => {
   })
 
   layoutData.relationships.forEach((link, i) => {
-    // link.bends = lines[i].map(({x, y}) => [x, y])
+    link.bends = lines[i].map(({x, y}) => [x, y])
   })
 
   return layoutData
