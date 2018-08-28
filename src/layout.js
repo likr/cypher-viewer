@@ -78,6 +78,7 @@ const applyEdgeConcentration = (data, groups, options) => {
   for (const node of data.nodes) {
     graph.addVertex(node.id, node)
   }
+  const edgeValues = new Map()
   for (const edge of data.relationships) {
     const {startNode, endNode} = edge
     const sourceGroup = graph.vertex(startNode).properties[options.groupProperty]
@@ -85,6 +86,7 @@ const applyEdgeConcentration = (data, groups, options) => {
     if (sourceGroup === targetGroup) {
       graph.addEdge(startNode, endNode, edge)
     }
+    edgeValues.set(`${startNode}-${endNode}`, edge.properties.value)
   }
 
   const groupNodes = groups.map(({name}) => {
@@ -171,7 +173,11 @@ const applyEdgeConcentration = (data, groups, options) => {
         const vNode = transformedGraph.vertex(v)
         if (!uNode.dummy && !vNode.dummy) {
           if (options.showSingleEdge) {
-            graph.addEdge(u, v)
+            graph.addEdge(u, v, {
+              properties: {
+                value: edgeValues.get(`${u}-${v}`) || edgeValues.get(`${v}-${u}`)
+              }
+            })
           }
         }
         if (uNode.dummy && !vNode.dummy) {

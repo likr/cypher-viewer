@@ -40,6 +40,7 @@ const fetchGraph = (query, userId, password, nodeColorProperty) => {
         .domain([-1, 0, 1])
         .range(['#00f', '#fff', '#f00'])
       for (const node of graph.nodes) {
+        node.properties.cell = node.properties.cells.join('-')
         node.fillColor = nodeColor(node.properties[nodeColorProperty])
       }
       for (const link of graph.relationships) {
@@ -171,6 +172,7 @@ class App extends React.Component {
               <option value='type'>Type</option>
               <option value='timeGroup'>Time Group</option>
               <option value='timeGroupDetail'>Time Group Detail</option>
+              <option value='cell'>Cell</option>
               <option value='unit'>Unit</option>
             </select>
           </div>
