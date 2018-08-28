@@ -253,7 +253,7 @@ const calcLayout = (Module, data, options) => {
 
   tiles.forEach((tile, i) => {
     tile.type = groupType.get(options.type)
-    tile.label = groups[i].name.toString()
+    tile.label = groups[i].name || ''
     tile.x += tile.width / 2
     tile.y += tile.height / 2
   })

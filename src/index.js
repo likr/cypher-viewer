@@ -167,6 +167,7 @@ class App extends React.Component {
           <div className='field'>
             <label>Node Group</label>
             <select ref='nodeGroup' className='ui selection dropdown' defaultValue='timeGroup'>
+              <option value='$none'>None</option>
               <option value='type'>Type</option>
               <option value='timeGroup'>Time Group</option>
               <option value='timeGroupDetail'>Time Group Detail</option>
