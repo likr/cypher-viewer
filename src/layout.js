@@ -9,6 +9,7 @@ import EGraph from './egraph/graph'
 import copy from './egraph/graph/copy'
 import EdgeConcentrationTransformer from './egraph/transformer/edge-concentration'
 import quasiBicliqueMining from './egraph/transformer/edge-concentration/quasi-biclique-mining'
+import {cellGroups} from './cell-groups'
 
 const countGroups = (nodes, key) => {
   const groupCount = new Map()
@@ -64,13 +65,16 @@ const groupLayout = (type, groups, width, height, Module) => {
       return circleGroups(groups, width, height)
     case 'treemap':
       return rectGroups(groups, width, height, Module)
+    case 'cell-groups':
+      return cellGroups(groups)
   }
   return rectGroups(groups, width, height, Module)
 }
 
 const groupType = new Map([
   ['circle-pack', 'circle'],
-  ['treemap', 'rect']
+  ['treemap', 'rect'],
+  ['cell-groups', 'rect']
 ])
 
 const applyEdgeConcentration = (data, groups, options) => {

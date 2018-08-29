@@ -154,6 +154,7 @@ class App extends React.Component {
             <select ref='group' className='ui selection dropdown' defaultValue='circle-pack'>
               <option value='treemap'>Treemap</option>
               <option value='circle-pack'>Circle Packing</option>
+              <option value='cell-groups'>Cell Groups</option>
             </select>
           </div>
           <div className='field'>
