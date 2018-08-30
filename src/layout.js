@@ -59,12 +59,35 @@ const circleGroups = (groups, width, height) => {
   return tiles
 }
 
+const radialGroups = (groups, width, height) => {
+  let offset = 0
+  const dTheta = Math.PI * 2 / groups.length
+  const r = width / 2
+  const maxR = r * Math.sin(Math.PI / groups.length)
+  const rScale = d3.scaleLinear()
+    .domain([0, d3.max(groups, (group) => group.count)])
+    .range([0, 2 * maxR])
+  return groups.map((group) => {
+    const x = r * Math.cos(offset)
+    const y = r * Math.sin(offset)
+    offset += dTheta
+    return {
+      x,
+      y,
+      width: rScale(group.count),
+      height: rScale(group.count)
+    }
+  })
+}
+
 const groupLayout = (type, groups, width, height, Module) => {
   switch (type) {
     case 'circle-pack':
       return circleGroups(groups, width, height)
     case 'treemap':
       return rectGroups(groups, width, height, Module)
+    case 'radial':
+      return radialGroups(groups, width, height)
     case 'cell-groups':
       return cellGroups(groups)
   }
@@ -74,6 +97,7 @@ const groupLayout = (type, groups, width, height, Module) => {
 const groupType = new Map([
   ['circle-pack', 'circle'],
   ['treemap', 'rect'],
+  ['radial', 'circle'],
   ['cell-groups', 'rect']
 ])
 
