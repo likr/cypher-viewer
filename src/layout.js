@@ -143,10 +143,10 @@ const applyEdgeConcentration = (data, groups, options) => {
         }
         return {
           dummy: true,
-          average: edges.reduce((a, e) => a + e.properties.value, 0) / edges.length,
-          strokeColor: 'black',
-          strokeWidth: 1,
-          fillOpacity: 0
+          sourceSize: source.length,
+          targetSize: target.length,
+          count: edges.length,
+          average: edges.reduce((a, e) => a + e.properties.value, 0) / edges.length
         }
       })
       const transformedGraph = transformer.transform(copy(subGraph))
@@ -155,17 +155,21 @@ const applyEdgeConcentration = (data, groups, options) => {
         if (node.dummy) {
           graph.addVertex(`${u}-l`, Object.assign({}, node, {
             id: `${u}-l`,
+            size: node.targetSize,
             properties: {
               [options.groupProperty]: groups[i].name
             }
           }))
           graph.addVertex(`${u}-r`, Object.assign({}, node, {
             id: `${u}-r`,
+            size: node.sourceSize,
             properties: {
               [options.groupProperty]: groups[j].name
             }
           }))
           graph.addEdge(`${u}-l`, `${u}-r`, {
+            dummy: true,
+            size: node.count,
             properties: {
               value: node.average
             }
@@ -186,6 +190,7 @@ const applyEdgeConcentration = (data, groups, options) => {
         }
         if (uNode.dummy && !vNode.dummy) {
           graph.addEdge(`${u}-r`, v, {
+            dummy: true,
             properties: {
               value: uNode.average
             }
@@ -193,6 +198,7 @@ const applyEdgeConcentration = (data, groups, options) => {
         }
         if (!uNode.dummy && vNode.dummy) {
           graph.addEdge(u, `${v}-l`, {
+            dummy: true,
             properties: {
               value: vNode.average
             }

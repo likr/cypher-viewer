@@ -33,20 +33,8 @@ const fetchGraph = (query, userId, password, nodeColorProperty) => {
     .then((response) => response.json())
     .then(({results}) => {
       const graph = results[0].data[0].graph
-      const linkWidthScale = d3.scaleLinear()
-        .domain([0, 1])
-        .range([0, 3])
-      const linkColorScale = d3.scaleLinear()
-        .domain([-1, 0, 1])
-        .range(['#00f', '#fff', '#f00'])
       for (const node of graph.nodes) {
         node.properties.cell = node.properties.cells.join('-')
-        node.fillColor = nodeColor(node.properties[nodeColorProperty])
-      }
-      for (const link of graph.relationships) {
-        link.type = 'line'
-        link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
-        link.strokeColor = linkColorScale(link.properties.value)
       }
       return graph
     })
@@ -274,19 +262,30 @@ class App extends React.Component {
       minCount: +this.refs.minCount.value
     }
     return layout(this.data, options).then((data) => {
+      const dummyNodeSize = d3.scaleSqrt()
+        .domain([1, d3.max(data.nodes, (node) => node.size)])
+        .range([5, 15])
       const linkWidthScale = d3.scaleLinear()
-        .domain([0, 1])
-        .range([1, 3])
+        .domain([0, d3.max(data.relationships, (link) => link.size)])
+        .range([1, 5])
       const linkColorScale = d3.scaleLinear()
         .domain([-1, 0, 1])
         .range(['#00f', '#888', '#f00'])
       for (const node of data.nodes) {
-        node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
+        if (node.dummy) {
+          node.width = dummyNodeSize(node.size)
+          node.height = dummyNodeSize(node.size)
+          node.fillColor = linkColorScale(node.average)
+        } else {
+          node.fillColor = nodeColor(node.properties[this.refs.nodeColor.value])
+        }
       }
       for (const link of data.relationships) {
         link.type = 'line'
-        link.strokeWidth = linkWidthScale(Math.abs(link.properties.value))
         link.strokeColor = linkColorScale(link.properties.value)
+        if (link.size) {
+          link.strokeWidth = linkWidthScale(link.size)
+        }
       }
       this.refs.renderer.load(data)
     })
