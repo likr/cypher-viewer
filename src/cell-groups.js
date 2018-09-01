@@ -1,4 +1,4 @@
-export const cellGroups = (groups) => {
+export const cellGroups = (groups, width, height) => {
   const coordinates = [
     {
       name: 'P0',
@@ -106,12 +106,14 @@ export const cellGroups = (groups) => {
       y: 750
     }
   ]
+  const xScale = width / 400
+  const yScale = height / 800
   for (const item of coordinates) {
-    item.width *= 5
-    item.height *= 2.5
-    item.x *= 5
+    item.width *= xScale
+    item.height *= yScale
+    item.x *= xScale
     item.x -= item.width / 2
-    item.y *= 2.5
+    item.y *= yScale
     item.y -= item.height / 2
   }
   const coordinatesMap = new Map(coordinates.map((item) => [item.name, item]))
