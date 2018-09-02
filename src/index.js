@@ -171,6 +171,10 @@ class App extends React.Component {
             <input ref='cycles' type='number' min='0' defaultValue='3' />
           </div>
           <div className='field'>
+            <label>Edge Concentration Threshold</label>
+            <input ref='mu' type='number' min='0' max='1' step='0.01' defaultValue='0.5' />
+          </div>
+          <div className='field'>
             <label>Edge Concentration Min Count</label>
             <input ref='minCount' type='number' min='1' defaultValue='6' />
           </div>
@@ -259,7 +263,7 @@ class App extends React.Component {
       interGroup: +this.refs.interGroup.value,
       useEdgeConcentration: this.refs.useEdgeConcentration.value === 'yes',
       showSingleEdge: this.refs.showSingleEdge.value === 'yes',
-      mu: 0.5,
+      mu: +this.refs.mu.value,
       minCount: +this.refs.minCount.value
     }
     return layout(this.data, options).then((data) => {
