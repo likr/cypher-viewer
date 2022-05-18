@@ -25,7 +25,10 @@ async function fetchGraph(query, server, userId, password) {
       ],
     }),
   });
-  const { results } = await response.json();
+  const { results, errors } = await response.json();
+  if (errors.length > 0) {
+    throw errors[0];
+  }
   const graph = results[0].data[0].graph;
   return graph;
 }
@@ -79,13 +82,17 @@ export default function App() {
         <form
           className="ui form"
           onSubmit={async (event) => {
-            event.preventDefault();
-            const query = event.target.elements.query.value;
-            const server = event.target.elements.server.value;
-            const userId = event.target.elements.userId.value;
-            const password = event.target.elements.password.value;
-            const data = await fetchGraph(query, server, userId, password);
-            setData(data);
+            try {
+              event.preventDefault();
+              const query = event.target.elements.query.value;
+              const server = event.target.elements.server.value;
+              const userId = event.target.elements.userId.value;
+              const password = event.target.elements.password.value;
+              const data = await fetchGraph(query, server, userId, password);
+              setData(data);
+            } catch (e) {
+              alert(`${e.code}\n${e.message}`);
+            }
           }}
         >
           <h4 className="ui dividing header">Query</h4>
