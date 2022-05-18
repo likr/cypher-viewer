@@ -71,6 +71,7 @@ export default function App() {
           node.fillColor = nodeColor(node.properties["大分類"]);
         }
         rendererRef.current.load(data);
+        rendererRef.current.center();
       }
     })();
   }, [data]);
